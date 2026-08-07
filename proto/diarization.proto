@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package diarization;
+
+service DiarizationService {
+  rpc ProcessAudio (DiarizationRequest)
+      returns (DiarizationResponse);
+}
+
+message DiarizationRequest {
+  bytes audio_data = 1;
+}
+
+message SpeakerSegment {
+  string speaker = 1;
+  double start = 2;
+  double end = 3;
+}
+
+message DiarizationResponse {
+  repeated SpeakerSegment segments = 1;
+}
