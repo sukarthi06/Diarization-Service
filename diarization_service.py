@@ -6,9 +6,12 @@ from dotenv import load_dotenv
 
 import io
 import os
+import structlog
 import torchaudio
 
 load_dotenv()
+
+log = structlog.get_logger()
 
 pipeline = Pipeline.from_pretrained(
     "pyannote/speaker-diarization-3.1",
@@ -19,23 +22,21 @@ pipeline = Pipeline.from_pretrained(
 class DiarizationService(
     diarization_pb2_grpc.DiarizationServiceServicer
 ):
-    
+
     def ProcessAudio(self, request, context):
 
         try:
 
-            print(
-                f"Received {len(request.audio_data)} bytes",
-                flush=True
-            )
+            log.info("audio_received", bytes=len(request.audio_data))
 
             audio_stream = io.BytesIO(request.audio_data)
 
             waveform, sample_rate = torchaudio.load(audio_stream)
 
-            print(
-                f"Loaded waveform shape={waveform.shape}, sample_rate={sample_rate}",
-                flush=True
+            log.info(
+                "waveform_loaded",
+                shape=list(waveform.shape),
+                sample_rate=sample_rate
             )
 
             result = pipeline({
@@ -43,7 +44,7 @@ class DiarizationService(
                 "sample_rate": sample_rate
             })
 
-            print("Pipeline completed", flush=True)
+            log.info("pipeline_completed")
 
             segments = []
 
@@ -58,7 +59,7 @@ class DiarizationService(
                     )
                 )
 
-            print(f"Returning {len(segments)} segments", flush=True)
+            log.info("segments_returned", count=len(segments))
 
             return diarization_pb2.DiarizationResponse(
                 segments=segments
@@ -66,9 +67,10 @@ class DiarizationService(
 
         except Exception as ex:
 
-            print(
-                f"ProcessAudio failed: {type(ex).__name__}: {ex}",
-                flush=True
+            log.error(
+                "process_audio_failed",
+                error_type=type(ex).__name__,
+                error=str(ex)
             )
 
             raise
