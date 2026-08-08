@@ -41,9 +41,12 @@ jobs:
           echo "::notice title=Azure login completed::Authenticated to subscription: $subscription."
 
       - name: Build and push image to ACR
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
           az acr login --name ${{ vars.ACR_NAME }} --resource-group ${{ vars.RG_NAME }}
           docker buildx build \
+            --secret id=hf_token,env=HF_TOKEN \
             -t ${{ vars.ACR_LOGIN_SERVER }}/stt-diarization-service-dev:${{ github.event.workflow_run.head_sha }} \
             --push .
           echo "::notice title=Container image published::Image pushed to ACR for commit ${{ github.event.workflow_run.head_sha }}."
