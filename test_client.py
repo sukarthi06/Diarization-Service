@@ -12,6 +12,8 @@ AUDIO_FILE = "test.wav"
 PORT = os.environ.get("PORT", "50051")
 SERVER_ADDRESS = f"localhost:{PORT}"
 MAX_MESSAGE_SIZE_MB = int(os.environ.get("MAX_MESSAGE_SIZE_MB", "50"))
+API_KEY = os.environ["API_KEY"]
+#API_KEY = "YOUR_API_KEY_HERE" Use this line if you want to test with dummy API key for validation
 
 
 def run():
@@ -28,7 +30,10 @@ def run():
 
         request = diarization_pb2.DiarizationRequest(audio_data=audio_data)
 
-        response = stub.ProcessAudio(request)
+        response = stub.ProcessAudio(
+            request,
+            metadata=[("x-api-key", API_KEY)]
+        )
 
         for segment in response.segments:
             print(

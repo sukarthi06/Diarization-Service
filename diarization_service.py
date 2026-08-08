@@ -15,6 +15,7 @@ load_dotenv()
 log = structlog.get_logger()
 
 MODEL_NAME = os.environ.get("MODEL_NAME", "pyannote/speaker-diarization-3.1")
+API_KEY = os.environ["API_KEY"]
 
 pipeline = Pipeline.from_pretrained(
     MODEL_NAME,
@@ -29,6 +30,14 @@ class DiarizationService(
     def ProcessAudio(self, request, context):
 
         try:
+
+            metadata = dict(context.invocation_metadata())
+
+            if metadata.get("x-api-key") != API_KEY:
+                log.warning("unauthorized_request")
+                context.set_code(grpc.StatusCode.UNAUTHENTICATED)
+                context.set_details("Missing or invalid API key")
+                return diarization_pb2.DiarizationResponse()
 
             log.info("audio_received", bytes=len(request.audio_data))
 
