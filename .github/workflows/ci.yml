@@ -27,4 +27,9 @@ jobs:
         run: python -m py_compile server.py diarization_service.py generated/diarization_pb2.py generated/diarization_pb2_grpc.py
 
       - name: Build Docker image
-        run: docker build -t diarization-service:ci .
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          docker buildx build \
+            --secret id=hf_token,env=HF_TOKEN \
+            -t diarization-service:ci .
