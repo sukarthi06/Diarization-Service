@@ -8,6 +8,7 @@ import grpc
 import io
 import os
 import structlog
+import torch
 import torchaudio
 
 load_dotenv()
@@ -17,10 +18,15 @@ log = structlog.get_logger()
 MODEL_NAME = os.environ.get("MODEL_NAME", "pyannote/speaker-diarization-3.1")
 API_KEY = os.environ["API_KEY"]
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 pipeline = Pipeline.from_pretrained(
     MODEL_NAME,
     token=os.environ["HF_TOKEN"]
 )
+pipeline.to(device)
+
+log.info("pipeline_device", device=str(device))
 
 
 class DiarizationService(
