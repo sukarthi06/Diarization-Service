@@ -1,10 +1,17 @@
 import grpc
+import os
+
+from dotenv import load_dotenv
 
 from generated import diarization_pb2
 from generated import diarization_pb2_grpc
 
+load_dotenv()
+
 AUDIO_FILE = "test.wav"
-SERVER_ADDRESS = "localhost:50051"
+PORT = os.environ.get("PORT", "50051")
+SERVER_ADDRESS = f"localhost:{PORT}"
+MAX_MESSAGE_SIZE_MB = int(os.environ.get("MAX_MESSAGE_SIZE_MB", "50"))
 
 
 def run():
@@ -12,8 +19,8 @@ def run():
         audio_data = f.read()
 
     options = [
-        ('grpc.max_receive_message_length', 50 * 1024 * 1024),
-        ('grpc.max_send_message_length', 50 * 1024 * 1024),
+        ('grpc.max_receive_message_length', MAX_MESSAGE_SIZE_MB * 1024 * 1024),
+        ('grpc.max_send_message_length', MAX_MESSAGE_SIZE_MB * 1024 * 1024),
     ]
 
     with grpc.insecure_channel(SERVER_ADDRESS, options=options) as channel:

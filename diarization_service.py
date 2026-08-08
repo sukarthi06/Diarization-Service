@@ -4,6 +4,7 @@ from generated import diarization_pb2_grpc
 from pyannote.audio import Pipeline
 from dotenv import load_dotenv
 
+import grpc
 import io
 import os
 import structlog
@@ -13,8 +14,10 @@ load_dotenv()
 
 log = structlog.get_logger()
 
+MODEL_NAME = os.environ.get("MODEL_NAME", "pyannote/speaker-diarization-3.1")
+
 pipeline = Pipeline.from_pretrained(
-    "pyannote/speaker-diarization-3.1",
+    MODEL_NAME,
     token=os.environ["HF_TOKEN"]
 )
 
@@ -29,9 +32,25 @@ class DiarizationService(
 
             log.info("audio_received", bytes=len(request.audio_data))
 
+            if not request.audio_data:
+                log.warning("audio_empty")
+                context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                context.set_details("audio_data must not be empty")
+                return diarization_pb2.DiarizationResponse()
+
             audio_stream = io.BytesIO(request.audio_data)
 
-            waveform, sample_rate = torchaudio.load(audio_stream)
+            try:
+                waveform, sample_rate = torchaudio.load(audio_stream)
+            except Exception as ex:
+                log.warning(
+                    "audio_decode_failed",
+                    error_type=type(ex).__name__,
+                    error=str(ex)
+                )
+                context.set_code(grpc.StatusCode.INVALID_ARGUMENT)
+                context.set_details(f"Could not decode audio: {ex}")
+                return diarization_pb2.DiarizationResponse()
 
             log.info(
                 "waveform_loaded",
